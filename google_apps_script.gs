@@ -35,7 +35,7 @@ const WEBSITE_COLUMNS = [
 ];
 
 const HIDDEN_COLUMNS = [
-  'Watched Date'
+  'Poster URL'
 ];
 
 function getTargetSheet_() {
@@ -51,8 +51,13 @@ function formatAndHideColumns_(sheet, headers) {
   try {
     var maxRows = sheet.getMaxRows();
     var watchedDateIdx = headers.indexOf('Watched Date') + 1;
-    if (watchedDateIdx > 0 && maxRows > 1) {
-      sheet.getRange(2, watchedDateIdx, maxRows - 1, 1).setNumberFormat('yyyy-mm-dd');
+    if (watchedDateIdx > 0) {
+      if (maxRows > 1) {
+        sheet.getRange(2, watchedDateIdx, maxRows - 1, 1).setNumberFormat('yyyy-mm-dd');
+      }
+      if (sheet.isColumnHiddenByUser && sheet.isColumnHiddenByUser(watchedDateIdx)) {
+        sheet.showColumns(watchedDateIdx);
+      }
     }
 
     HIDDEN_COLUMNS.forEach(function (colName) {
