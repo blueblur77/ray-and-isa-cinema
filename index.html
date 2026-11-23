@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ray &amp; Isa's Cinema — Plex Movie &amp; TV Catalog</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e5a00d'%3E%3Crect x='2' y='4' width='20' height='16' rx='3' fill='%230b0d10' stroke='%23e5a00d' stroke-width='2'/%3E%3Cpath d='M10 9L16 12L10 15V9Z'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="ambient-glow" aria-hidden="true"></div>
+
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <rect x="2" y="4" width="20" height="16" rx="3" stroke="currentColor" stroke-width="2"/>
+            <path d="M10 9L16 12L10 15V9Z" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">RAY &amp; ISA'S CINEMA</span>
+          <span class="brand-subtitle">Plex Watchlist &amp; Catalog</span>
+        </div>
+      </div>
+
+      <nav class="nav-tabs" aria-label="Catalog views">
+        <button id="nav-unwatched" class="nav-tab active" data-view="unwatched" type="button">
+          <span class="nav-tab-label">Unwatched</span>
+          <span id="count-unwatched" class="nav-count">0</span>
+        </button>
+        <button id="nav-watched" class="nav-tab" data-view="watched" type="button">
+          <span class="nav-tab-label">Watched</span>
+          <span id="count-watched" class="nav-count">0</span>
+        </button>
+      </nav>
+
+      <div class="navbar-actions">
+        <button id="btn-refresh" class="icon-btn" type="button" title="Sync with Google Sheet">
+          <svg class="icon-spin-target" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+            <path d="M16 16h5v5"/>
+          </svg>
+          <span class="btn-label">Sync</span>
+        </button>
+        <button id="btn-settings" class="settings-btn" type="button" title="Sheet Connection &amp; Settings">
+          <span id="connection-dot" class="status-dot status-demo" aria-hidden="true"></span>
+          <span id="connection-label">Demo Mode</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.85 1 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Setup Banner -->
+    <section id="setup-banner" class="setup-banner" hidden>
+      <div class="setup-banner-content">
+        <div class="setup-banner-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+        </div>
+        <div>
+          <strong id="setup-banner-title">Connect your live Google Sheet for 2-way sync</strong>
+          <p id="setup-banner-desc">
+            Currently previewing sample titles. Deploy the included <code>google_apps_script.gs</code> in your Sheet so marking movies Watched and caching poster art syncs automatically.
+          </p>
+        </div>
+      </div>
+      <div class="setup-banner-actions">
+        <button id="btn-open-setup" class="btn btn-amber" type="button">Connect Google Sheet</button>
+        <button id="btn-dismiss-banner" class="btn btn-ghost" type="button" aria-label="Dismiss banner">Dismiss</button>
+      </div>
+    </section>
+
+    <!-- Page Heading & Controls -->
+    <section class="controls-bar">
+      <div class="view-header">
+        <div>
+          <h1 id="view-title" class="view-title">Unwatched Queue</h1>
+          <p id="view-subtitle" class="view-subtitle">Movies &amp; TV shows waiting for movie night</p>
+        </div>
+        <div id="results-summary" class="results-summary">Showing 0 titles</div>
+      </div>
+
+      <div class="filters-row">
+        <div class="filter-groups">
+          <div class="pill-group" role="group" aria-label="Filter by requester">
+            <span class="filter-label">Requested by</span>
+            <button class="filter-pill active" data-requester="all" type="button">All</button>
+            <button class="filter-pill pill-ray" data-requester="ray" type="button">
+              <span class="dot dot-ray"></span>Ray
+            </button>
+            <button class="filter-pill pill-isa" data-requester="isa" type="button">
+              <span class="dot dot-isa"></span>Isa
+            </button>
+          </div>
+
+          <div class="pill-group" role="group" aria-label="Filter by media type">
+            <span class="filter-label">Type</span>
+            <button class="filter-pill active" data-type="all" type="button">All</button>
+            <button class="filter-pill" data-type="movie" type="button">Movies</button>
+            <button class="filter-pill" data-type="tv" type="button">TV Shows</button>
+          </div>
+        </div>
+
+        <div class="search-sort-group">
+          <div class="search-box">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.3-4.3"/>
+            </svg>
+            <input id="search-input" type="search" placeholder="Search title, genre, year..." autocomplete="off">
+          </div>
+
+          <label class="sort-box" for="sort-select">
+            <span class="sr-only">Sort titles</span>
+            <select id="sort-select">
+              <option value="newest">Newest Requested</option>
+              <option value="title">Title (A–Z)</option>
+              <option value="year">Release Year</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Loading Skeleton -->
+    <section id="loading-grid" class="catalog-grid" hidden aria-label="Loading catalog">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </section>
+
+    <!-- Poster Catalog Grid -->
+    <section id="catalog-grid" class="catalog-grid" aria-live="polite"></section>
+
+    <!-- Empty State -->
+    <section id="empty-state" class="empty-state" hidden>
+      <div class="empty-icon" aria-hidden="true">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="2" y="4" width="20" height="16" rx="3"/>
+          <path d="M7 4v16M17 4v16M2 9.5h5M17 9.5h5M2 14.5h5M17 14.5h5"/>
+        </svg>
+      </div>
+      <h2 id="empty-title">No titles match your filters</h2>
+      <p id="empty-description">Try clearing your search or switching requester and media type filters.</p>
+      <button id="btn-reset-filters" class="btn btn-secondary" type="button">Reset Filters</button>
+    </section>
+  </main>
+
+  <!-- Detail Modal -->
+  <div id="detail-modal" class="modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="detail-title">
+    <div class="modal-card detail-modal-card">
+      <button class="modal-close" data-close-modal="detail-modal" type="button" aria-label="Close details">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+
+      <div class="detail-layout">
+        <div class="detail-poster-wrap">
+          <img id="detail-poster" class="detail-poster" src="" alt="">
+          <div id="detail-poster-fallback" class="poster-fallback detail-fallback" hidden></div>
+        </div>
+
+        <div class="detail-body">
+          <div class="detail-badges">
+            <span id="detail-requester-badge" class="badge"></span>
+            <span id="detail-type-badge" class="badge badge-neutral"></span>
+            <span id="detail-status-badge" class="badge"></span>
+          </div>
+
+          <h2 id="detail-title" class="detail-title"></h2>
+          <p id="detail-meta-line" class="detail-meta-line"></p>
+
+          <dl class="detail-specs">
+            <div class="spec-item">
+              <dt>Date Requested</dt>
+              <dd id="detail-date-requested">—</dd>
+            </div>
+            <div class="spec-item">
+              <dt>Added to Plex</dt>
+              <dd id="detail-plex-date">—</dd>
+            </div>
+            <div class="spec-item">
+              <dt>Season / Quality</dt>
+              <dd id="detail-quality">—</dd>
+            </div>
+            <div class="spec-item">
+              <dt>Watched Date</dt>
+              <dd id="detail-watched-date">Not watched yet</dd>
+            </div>
+          </dl>
+
+          <div class="detail-actions">
+            <button id="detail-toggle-watched" class="btn btn-amber btn-lg" type="button"></button>
+            <button id="btn-edit-poster-toggle" class="btn btn-secondary" type="button">Edit Poster URL</button>
+          </div>
+
+          <form id="edit-poster-form" class="edit-poster-form" hidden>
+            <label for="input-custom-poster">Custom Poster Image URL</label>
+            <div class="edit-poster-row">
+              <input id="input-custom-poster" type="url" placeholder="https://image.tmdb.org/t/p/w500/..." required>
+              <button class="btn btn-amber" type="submit">Save</button>
+              <button id="btn-cancel-poster" class="btn btn-ghost" type="button">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings & Google Sheet Connection Modal -->
+  <div id="settings-modal" class="modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-card settings-modal-card">
+      <button class="modal-close" data-close-modal="settings-modal" type="button" aria-label="Close settings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+
+      <h2 id="settings-title" class="modal-heading">Google Sheet Connection &amp; Poster Settings</h2>
+      <p class="modal-lead">
+        Connect your <strong>Ray and Isa Movie Catalog</strong> sheet (<code>18dMxzqimum6c4KfF7TgD0wZfmqXbjCYTAxxGHoTxvCg</code>) so the website reads live requests, adds the <code>Watched</code> &amp; <code>Poster URL</code> columns automatically, and saves changes back to the sheet.
+      </p>
+
+      <div class="setup-steps">
+        <div class="setup-step">
+          <span class="step-num">1</span>
+          <div>
+            Open your Google Sheet and click <strong>Extensions → Apps Script</strong>.
+          </div>
+        </div>
+        <div class="setup-step">
+          <span class="step-num">2</span>
+          <div>
+            Paste the code from <code>google_apps_script.gs</code> into <code>Code.gs</code> and save.
+          </div>
+        </div>
+        <div class="setup-step">
+          <span class="step-num">3</span>
+          <div>
+            Click <strong>Deploy → New deployment → Web app</strong>, set <em>Execute as</em> to <strong>Me</strong> and <em>Who has access</em> to <strong>Anyone</strong>, then copy the <code>https://script.google.com/macros/s/.../exec</code> URL from the deploy dialog (or <strong>Deploy → Manage deployments</strong>) — not the temporary browser <code>script.googleusercontent.com/macros/echo</code> redirect link.
+          </div>
+        </div>
+      </div>
+
+      <form id="settings-form" class="settings-form">
+        <div class="form-group">
+          <label for="input-gas-url">Google Apps Script Web App URL</label>
+          <input id="input-gas-url" type="url" placeholder="https://script.google.com/macros/s/.../exec">
+          <span class="form-hint">Use your permanent <code>/exec</code> Web App URL so live reading, 1-click Watched updates, and Poster URL saving work across refreshes.</span>
+        </div>
+
+        <div class="form-divider">
+          <span>Poster Art &amp; Metadata Providers</span>
+        </div>
+        <p class="form-note">
+          <strong>Zero-key poster lookup is active by default</strong> (IMDb Public Suggestions + TVMaze). Optionally add a TMDB or OMDb key below to also populate full genres &amp; runtimes for movies.
+        </p>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="input-tmdb-key">TMDB API Key or Read Token <span class="optional">(Optional)</span></label>
+            <input id="input-tmdb-key" type="password" placeholder="v3 api_key or v4 Bearer token" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="input-omdb-key">OMDb API Key <span class="optional">(Optional)</span></label>
+            <input id="input-omdb-key" type="password" placeholder="e.g. a1b2c3d4" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="settings-footer">
+          <div class="settings-footer-right">
+            <button id="btn-clear-cache" class="btn btn-secondary" type="button">Clear Cached Posters &amp; Re-fetch</button>
+            <button id="btn-copy-share-link" class="btn btn-secondary" type="button">Copy Shareable Link for Isa</button>
+          </div>
+          <div class="settings-footer-right">
+            <button class="btn btn-ghost" data-close-modal="settings-modal" type="button">Cancel</button>
+            <button id="btn-save-settings" class="btn btn-amber" type="submit">Save &amp; Sync</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
