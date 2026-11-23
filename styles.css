@@ -435,6 +435,12 @@ body {
   color: var(--isa);
 }
 
+.filter-pill.pill-both.active {
+  background: var(--emerald-soft);
+  border-color: var(--emerald);
+  color: var(--emerald);
+}
+
 .dot {
   width: 7px;
   height: 7px;
@@ -447,6 +453,10 @@ body {
 
 .dot-isa {
   background: var(--isa);
+}
+
+.dot-both {
+  background: var(--emerald);
 }
 
 .search-sort-group {
@@ -701,6 +711,60 @@ body {
   font-size: 0.72rem;
   color: var(--text-muted);
   gap: 0.4rem;
+}
+
+.watch-split-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.watch-person-btn {
+  appearance: none;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.42rem 0.5rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  transition: all 0.16s ease;
+}
+
+.watch-person-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.watch-btn-ray.is-active {
+  background: var(--ray-soft);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: var(--ray);
+}
+
+.watch-btn-isa.is-active {
+  background: var(--isa-soft);
+  border-color: rgba(244, 114, 182, 0.5);
+  color: var(--isa);
+}
+
+.detail-watch-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.4fr;
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+}
+
+.detail-watch-group .watch-person-btn,
+.detail-watch-group .watch-toggle-btn {
+  padding: 0.65rem 0.85rem;
+  font-size: 0.86rem;
 }
 
 .watch-toggle-btn {

@@ -25,6 +25,8 @@ const BASE_COLUMNS = [
 
 const WEBSITE_COLUMNS = [
   'Watched',
+  'Ray Watched',
+  'Isa Watched',
   'Watched Date',
   'Poster URL',
   'Year',
@@ -116,7 +118,7 @@ function doGet(e) {
         if (String(cellVal).trim() !== '') {
           hasContent = true;
         }
-        if (header === 'Watched') {
+        if (header === 'Watched' || header === 'Ray Watched' || header === 'Isa Watched') {
           record[header] = normalizeWatched_(cellVal);
         } else {
           record[header] = cellVal;
@@ -208,15 +210,26 @@ function doPost(e) {
 
     if (action === 'toggleWatched') {
       const watchedCol = headers.indexOf('Watched') + 1;
+      const rayWatchedCol = headers.indexOf('Ray Watched') + 1;
+      const isaWatchedCol = headers.indexOf('Isa Watched') + 1;
       const watchedDateCol = headers.indexOf('Watched Date') + 1;
-      const isWatched = Boolean(payload.watched);
-      const watchedDate = isWatched
+
+      const rayWatched = payload.rayWatched !== undefined ? Boolean(payload.rayWatched) : Boolean(payload.watched);
+      const isaWatched = payload.isaWatched !== undefined ? Boolean(payload.isaWatched) : Boolean(payload.watched);
+      const isWatched = payload.watched !== undefined ? Boolean(payload.watched) : (rayWatched && isaWatched);
+      const watchedDate = (isWatched || rayWatched || isaWatched)
         ? (payload.watchedDate || Utilities.formatDate(new Date(), timeZone, 'yyyy-MM-dd'))
         : '';
 
       targetRows.forEach(function (targetRow) {
         if (watchedCol > 0) {
           sheet.getRange(targetRow, watchedCol).setValue(isWatched ? 'TRUE' : 'FALSE');
+        }
+        if (rayWatchedCol > 0) {
+          sheet.getRange(targetRow, rayWatchedCol).setValue(rayWatched ? 'TRUE' : 'FALSE');
+        }
+        if (isaWatchedCol > 0) {
+          sheet.getRange(targetRow, isaWatchedCol).setValue(isaWatched ? 'TRUE' : 'FALSE');
         }
         if (watchedDateCol > 0) {
           sheet.getRange(targetRow, watchedDateCol).setValue(watchedDate);
@@ -230,6 +243,8 @@ function doPost(e) {
           rowIndices: targetRows,
           title: payload.title,
           watched: isWatched,
+          rayWatched: rayWatched,
+          isaWatched: isaWatched,
           watchedDate: watchedDate
         }
       });

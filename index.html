@@ -113,6 +113,21 @@
             <button class="filter-pill" data-type="movie" type="button">Movies</button>
             <button class="filter-pill" data-type="tv" type="button">TV Shows</button>
           </div>
+
+          <div class="pill-group" role="group" aria-label="Filter by who watched">
+            <span class="filter-label">Watched by</span>
+            <button class="filter-pill active" data-watch-filter="tab" type="button">All in Tab</button>
+            <button class="filter-pill" data-watch-filter="neither" type="button">Neither</button>
+            <button class="filter-pill pill-ray" data-watch-filter="ray-only" type="button">
+              <span class="dot dot-ray"></span>Only Ray
+            </button>
+            <button class="filter-pill pill-isa" data-watch-filter="isa-only" type="button">
+              <span class="dot dot-isa"></span>Only Isa
+            </button>
+            <button class="filter-pill pill-both" data-watch-filter="both" type="button">
+              <span class="dot dot-both"></span>Both Watched
+            </button>
+          </div>
         </div>
 
         <div class="search-sort-group">
@@ -207,8 +222,13 @@
             </div>
           </dl>
 
+          <div class="detail-watch-group" role="group" aria-label="Mark who watched">
+            <button id="detail-watch-ray" class="watch-person-btn watch-btn-ray" type="button"></button>
+            <button id="detail-watch-isa" class="watch-person-btn watch-btn-isa" type="button"></button>
+            <button id="detail-toggle-watched" class="watch-toggle-btn" type="button"></button>
+          </div>
+
           <div class="detail-actions">
-            <button id="detail-toggle-watched" class="btn btn-amber btn-lg" type="button"></button>
             <button id="btn-edit-poster-toggle" class="btn btn-secondary" type="button">Edit Poster URL</button>
           </div>
 

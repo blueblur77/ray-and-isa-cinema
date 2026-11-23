@@ -97,6 +97,7 @@
     view: 'unwatched', // 'unwatched' | 'watched'
     requesterFilter: 'all', // 'all' | 'ray' | 'isa'
     typeFilter: 'all', // 'all' | 'movie' | 'tv'
+    watchFilter: 'tab', // 'tab' | 'neither' | 'ray-only' | 'isa-only' | 'both'
     searchQuery: '',
     sortBy: 'newest', // 'newest' | 'title' | 'year'
     connectionMode: 'demo', // 'live' | 'readonly' | 'demo'
@@ -144,6 +145,8 @@
     detailPlexDate: document.getElementById('detail-plex-date'),
     detailQuality: document.getElementById('detail-quality'),
     detailWatchedDate: document.getElementById('detail-watched-date'),
+    detailWatchRay: document.getElementById('detail-watch-ray'),
+    detailWatchIsa: document.getElementById('detail-watch-isa'),
     detailToggleWatched: document.getElementById('detail-toggle-watched'),
     btnEditPosterToggle: document.getElementById('btn-edit-poster-toggle'),
     editPosterForm: document.getElementById('edit-poster-form'),
@@ -287,12 +290,22 @@
     const sheetGenre = String(raw['Genre'] ?? raw.genre ?? '').trim();
     const sheetRuntime = String(raw['Runtime'] ?? raw.runtime ?? '').trim();
 
-    let watched = normalizeWatched(raw['Watched'] ?? raw.watched);
+    let rawBothWatched = normalizeWatched(raw['Watched'] ?? raw.watched);
+    let rayWatched = normalizeWatched(raw['Ray Watched'] ?? raw.rayWatched);
+    let isaWatched = normalizeWatched(raw['Isa Watched'] ?? raw.isaWatched);
+    if (rawBothWatched && !rayWatched && !isaWatched) {
+      rayWatched = true;
+      isaWatched = true;
+    }
+    let watched = rayWatched && isaWatched;
     let watchedDate = String(raw['Watched Date'] ?? raw.watchedDate ?? '').trim();
 
     if (state.connectionMode !== 'live' && state.demoOverrides[key]) {
-      watched = Boolean(state.demoOverrides[key].watched);
-      watchedDate = state.demoOverrides[key].watchedDate || '';
+      const ov = state.demoOverrides[key];
+      rayWatched = ov.rayWatched !== undefined ? Boolean(ov.rayWatched) : Boolean(ov.watched);
+      isaWatched = ov.isaWatched !== undefined ? Boolean(ov.isaWatched) : Boolean(ov.watched);
+      watched = rayWatched && isaWatched;
+      watchedDate = ov.watchedDate || '';
     }
 
     return {
@@ -308,6 +321,8 @@
       addedToPlexDate: String(raw['Added to Plex Date'] ?? raw.addedToPlexDate ?? '-').trim() || '-',
       requestedByRaw: String(raw['Requested By'] ?? raw.requestedByRaw ?? '').trim(),
       requester,
+      rayWatched,
+      isaWatched,
       watched,
       watchedDate,
       posterUrl: sheetPoster || cachedMeta.posterUrl || '',
@@ -339,10 +354,16 @@
       const primary = preferIncoming ? item : existing;
       const secondary = preferIncoming ? existing : item;
 
+      const mergedRay = existing.rayWatched || item.rayWatched;
+      const mergedIsa = existing.isaWatched || item.isaWatched;
+      const mergedWatched = (mergedRay && mergedIsa) || existing.watched || item.watched;
+
       byKey.set(item.key, {
         ...primary,
         rowIndices,
-        watched: existing.watched || item.watched,
+        rayWatched: mergedWatched ? true : mergedRay,
+        isaWatched: mergedWatched ? true : mergedIsa,
+        watched: mergedWatched,
         watchedDate: primary.watchedDate || secondary.watchedDate || '',
         posterUrl: primary.posterUrl || secondary.posterUrl || '',
         year: primary.year || secondary.year || '',
@@ -537,21 +558,45 @@
     return data;
   }
 
-  async function toggleWatched(itemKey) {
+  async function toggleWatched(itemKey, who = 'both') {
     const item = state.items.find((i) => i.key === itemKey);
     if (!item) return;
 
     const prevWatched = item.watched;
+    const prevRay = item.rayWatched;
+    const prevIsa = item.isaWatched;
     const prevDate = item.watchedDate;
-    const nextWatched = !prevWatched;
-    const nextDate = nextWatched ? new Date().toISOString().split('T')[0] : '';
+
+    let nextRay = prevRay;
+    let nextIsa = prevIsa;
+
+    if (who === 'ray') {
+      nextRay = !prevRay;
+    } else if (who === 'isa') {
+      nextIsa = !prevIsa;
+    } else {
+      const currentlyBoth = prevRay && prevIsa;
+      nextRay = !currentlyBoth;
+      nextIsa = !currentlyBoth;
+    }
+
+    const nextWatched = nextRay && nextIsa;
+    const today = new Date().toISOString().split('T')[0];
+    const nextDate = (nextWatched || nextRay || nextIsa) ? (prevDate || today) : '';
 
     // Optimistic UI update
+    item.rayWatched = nextRay;
+    item.isaWatched = nextIsa;
     item.watched = nextWatched;
     item.watchedDate = nextDate;
 
     if (state.connectionMode !== 'live') {
-      state.demoOverrides[item.key] = { watched: nextWatched, watchedDate: nextDate };
+      state.demoOverrides[item.key] = {
+        watched: nextWatched,
+        rayWatched: nextRay,
+        isaWatched: nextIsa,
+        watchedDate: nextDate
+      };
       saveJsonStorage(STORAGE_KEYS.DEMO_OVERRIDES, state.demoOverrides);
     }
 
@@ -560,12 +605,23 @@
       openDetailModal(item.key);
     }
 
-    showToast(
-      nextWatched
-        ? `Marked "${item.title}" as Watched`
-        : `Moved "${item.title}" back to Unwatched`,
-      'success'
-    );
+    let toastMsg = '';
+    if (nextWatched && !prevWatched) {
+      toastMsg = `Marked "${item.title}" as Watched by Both Ray & Isa!`;
+    } else if (!nextRay && !nextIsa && (prevRay || prevIsa)) {
+      toastMsg = `Moved "${item.title}" back to Unwatched`;
+    } else if (who === 'ray') {
+      toastMsg = nextRay
+        ? `Marked "${item.title}" as watched by Ray`
+        : `Unmarked Ray on "${item.title}"`;
+    } else if (who === 'isa') {
+      toastMsg = nextIsa
+        ? `Marked "${item.title}" as watched by Isa`
+        : `Unmarked Isa on "${item.title}"`;
+    } else {
+      toastMsg = `Updated watch status for "${item.title}"`;
+    }
+    showToast(toastMsg, 'success');
 
     if (state.connectionMode === 'live') {
       try {
@@ -575,11 +631,15 @@
           rowIndex: item.rowIndex,
           rowIndices: item.rowIndices,
           watched: nextWatched,
+          rayWatched: nextRay,
+          isaWatched: nextIsa,
           watchedDate: nextDate
         });
       } catch (err) {
         // Roll back on failure
         item.watched = prevWatched;
+        item.rayWatched = prevRay;
+        item.isaWatched = prevIsa;
         item.watchedDate = prevDate;
         renderAll();
         showToast(`Failed to sync "${item.title}" to Google Sheet: ${err.message}`, 'error');
@@ -822,7 +882,18 @@
     const q = state.searchQuery.trim().toLowerCase();
 
     const filtered = state.items.filter((item) => {
-      if (item.watched !== wantWatched) return false;
+      if (state.watchFilter === 'neither') {
+        if (item.rayWatched || item.isaWatched) return false;
+      } else if (state.watchFilter === 'ray-only') {
+        if (!item.rayWatched || item.isaWatched) return false;
+      } else if (state.watchFilter === 'isa-only') {
+        if (item.rayWatched || !item.isaWatched) return false;
+      } else if (state.watchFilter === 'both') {
+        if (!item.watched) return false;
+      } else {
+        if (item.watched !== wantWatched) return false;
+      }
+
       if (state.requesterFilter !== 'all' && item.requester.id !== state.requesterFilter) return false;
       if (state.typeFilter === 'movie' && item.mediaType !== 'Movie') return false;
       if (state.typeFilter === 'tv' && item.mediaType !== 'TV Show') return false;
@@ -893,6 +964,19 @@
       .replace(/"/g, '&quot;');
   }
 
+  function formatWatchProgressText(item) {
+    if (item.watched) {
+      return item.watchedDate ? `Both watched (${item.watchedDate})` : 'Both watched';
+    }
+    if (item.rayWatched && !item.isaWatched) {
+      return 'Ray watched • Waiting on Isa';
+    }
+    if (!item.rayWatched && item.isaWatched) {
+      return 'Isa watched • Waiting on Ray';
+    }
+    return item.dateRequested ? `Req ${item.dateRequested}` : 'Unwatched';
+  }
+
   function buildCardElement(item) {
     const card = document.createElement('article');
     card.className = 'movie-card';
@@ -917,10 +1001,18 @@
       <div class="card-footer">
         <div class="card-subinfo">
           <span>${escapeHtml(item.mediaType)}</span>
-          <span>${item.watched && item.watchedDate ? `Watched ${escapeHtml(item.watchedDate)}` : (item.dateRequested ? `Req ${escapeHtml(item.dateRequested)}` : '')}</span>
+          <span>${escapeHtml(formatWatchProgressText(item))}</span>
         </div>
-        <button class="watch-toggle-btn ${item.watched ? 'is-watched' : ''}" type="button">
-          ${item.watched ? '✓ Watched (Move to Unwatched)' : 'Mark as Watched'}
+        <div class="watch-split-row">
+          <button class="watch-person-btn watch-btn-ray ${item.rayWatched ? 'is-active' : ''}" data-watch-who="ray" type="button" title="Toggle Ray watched">
+            ${item.rayWatched ? '✓ Ray' : 'Ray'}
+          </button>
+          <button class="watch-person-btn watch-btn-isa ${item.isaWatched ? 'is-active' : ''}" data-watch-who="isa" type="button" title="Toggle Isa watched">
+            ${item.isaWatched ? '✓ Isa' : 'Isa'}
+          </button>
+        </div>
+        <button class="watch-toggle-btn ${item.watched ? 'is-watched' : ''}" data-watch-who="both" type="button">
+          ${item.watched ? '✓ Both Watched' : 'Both Watched'}
         </button>
       </div>
     `;
@@ -937,10 +1029,11 @@
       }
     });
 
-    const toggleBtn = card.querySelector('.watch-toggle-btn');
-    toggleBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleWatched(item.key);
+    card.querySelectorAll('[data-watch-who]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleWatched(item.key, btn.dataset.watchWho);
+      });
     });
 
     return card;
@@ -1038,7 +1131,7 @@
     dom.detailDateRequested.textContent = item.dateRequested || '—';
     dom.detailPlexDate.textContent = item.addedToPlexDate || '—';
     dom.detailQuality.textContent = item.seasonsQuality || '—';
-    dom.detailWatchedDate.textContent = item.watched ? (item.watchedDate || 'Watched') : 'Not watched yet';
+    dom.detailWatchedDate.textContent = formatWatchProgressText(item);
 
     if (item.posterUrl) {
       dom.detailPoster.src = item.posterUrl;
@@ -1058,8 +1151,16 @@
       <span class="poster-fallback-title">${escapeHtml(item.title)}</span>
     `;
 
-    dom.detailToggleWatched.className = `btn btn-lg ${item.watched ? 'btn-secondary' : 'btn-amber'}`;
-    dom.detailToggleWatched.textContent = item.watched ? 'Move back to Unwatched' : 'Mark as Watched';
+    if (dom.detailWatchRay) {
+      dom.detailWatchRay.className = `watch-person-btn watch-btn-ray ${item.rayWatched ? 'is-active' : ''}`;
+      dom.detailWatchRay.textContent = item.rayWatched ? '✓ Ray Watched' : 'Ray Watched';
+    }
+    if (dom.detailWatchIsa) {
+      dom.detailWatchIsa.className = `watch-person-btn watch-btn-isa ${item.isaWatched ? 'is-active' : ''}`;
+      dom.detailWatchIsa.textContent = item.isaWatched ? '✓ Isa Watched' : 'Isa Watched';
+    }
+    dom.detailToggleWatched.className = `watch-toggle-btn ${item.watched ? 'is-watched' : ''}`;
+    dom.detailToggleWatched.textContent = item.watched ? '✓ Both Watched' : 'Both Watched';
 
     dom.editPosterForm.hidden = true;
     dom.inputCustomPoster.value = item.posterUrl || '';
@@ -1083,6 +1184,10 @@
     [dom.navUnwatched, dom.navWatched].forEach((tab) => {
       tab.addEventListener('click', () => {
         state.view = tab.dataset.view;
+        state.watchFilter = 'tab';
+        document.querySelectorAll('[data-watch-filter]').forEach((b) => {
+          b.classList.toggle('active', b.dataset.watchFilter === 'tab');
+        });
         renderAll();
       });
     });
@@ -1105,6 +1210,21 @@
       });
     });
 
+    // Watch Status Filter Pills
+    document.querySelectorAll('[data-watch-filter]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const wf = btn.dataset.watchFilter;
+        state.watchFilter = wf;
+        if (wf === 'both') {
+          state.view = 'watched';
+        } else if (wf === 'neither' || wf === 'ray-only' || wf === 'isa-only') {
+          state.view = 'unwatched';
+        }
+        document.querySelectorAll('[data-watch-filter]').forEach((b) => b.classList.toggle('active', b === btn));
+        renderAll();
+      });
+    });
+
     // Search & Sort
     dom.searchInput.addEventListener('input', (e) => {
       state.searchQuery = e.target.value;
@@ -1119,10 +1239,12 @@
     dom.btnResetFilters.addEventListener('click', () => {
       state.requesterFilter = 'all';
       state.typeFilter = 'all';
+      state.watchFilter = 'tab';
       state.searchQuery = '';
       dom.searchInput.value = '';
       document.querySelectorAll('[data-requester]').forEach((b) => b.classList.toggle('active', b.dataset.requester === 'all'));
       document.querySelectorAll('[data-type]').forEach((b) => b.classList.toggle('active', b.dataset.type === 'all'));
+      document.querySelectorAll('[data-watch-filter]').forEach((b) => b.classList.toggle('active', b.dataset.watchFilter === 'tab'));
       renderAll();
     });
 
@@ -1136,8 +1258,18 @@
     });
 
     // Detail Modal Actions
+    if (dom.detailWatchRay) {
+      dom.detailWatchRay.addEventListener('click', () => {
+        if (state.selectedItemKey) toggleWatched(state.selectedItemKey, 'ray');
+      });
+    }
+    if (dom.detailWatchIsa) {
+      dom.detailWatchIsa.addEventListener('click', () => {
+        if (state.selectedItemKey) toggleWatched(state.selectedItemKey, 'isa');
+      });
+    }
     dom.detailToggleWatched.addEventListener('click', () => {
-      if (state.selectedItemKey) toggleWatched(state.selectedItemKey);
+      if (state.selectedItemKey) toggleWatched(state.selectedItemKey, 'both');
     });
 
     dom.btnEditPosterToggle.addEventListener('click', () => {
