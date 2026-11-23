@@ -807,9 +807,12 @@
   }
 
   async function enrichAllMissingPosters() {
-    const candidates = state.items.filter(
-      (item) => (!item.posterUrl || (!item.year && !state.metadataCache[item.key])) && !state.fetchingKeys.has(item.key)
-    );
+    const candidates = state.items.filter((item) => {
+      if (state.fetchingKeys.has(item.key)) return false;
+      const needsFetch = !item.posterUrl || (!item.year && !state.metadataCache[item.key]);
+      const needsSheetBackfill = state.connectionMode === 'live' && !item.hasSheetMetadata && Boolean(item.posterUrl);
+      return needsFetch || needsSheetBackfill;
+    });
     if (candidates.length === 0) return;
 
     const concurrency = 3;
@@ -820,54 +823,60 @@
         const item = candidates[cursor++];
         state.fetchingKeys.add(item.key);
 
-        const resolved = await fetchPosterAndMetadata(item);
-        if (resolved) {
-          let changed = false;
-          if (!item.posterUrl && resolved.posterUrl) {
-            item.posterUrl = resolved.posterUrl;
-            changed = true;
-          }
-          if (!item.year && resolved.year) {
-            item.year = resolved.year;
-            changed = true;
-          }
-          if (!item.genre && resolved.genre) {
-            item.genre = resolved.genre;
-            changed = true;
-          }
-          if (!item.runtime && resolved.runtime) {
-            item.runtime = resolved.runtime;
-            changed = true;
-          }
-
-          if (changed) {
-            state.metadataCache[item.key] = {
-              posterUrl: item.posterUrl,
-              year: item.year,
-              genre: item.genre,
-              runtime: item.runtime
-            };
-            saveJsonStorage(STORAGE_KEYS.METADATA_CACHE, state.metadataCache);
-            updateCardInDom(item);
-
-            if (state.selectedItemKey === item.key && !dom.detailModal.hidden) {
-              openDetailModal(item.key);
+        const needsFetch = !item.posterUrl || (!item.year && !state.metadataCache[item.key]);
+        if (needsFetch) {
+          const resolved = await fetchPosterAndMetadata(item);
+          if (resolved) {
+            let changed = false;
+            if (!item.posterUrl && resolved.posterUrl) {
+              item.posterUrl = resolved.posterUrl;
+              changed = true;
+            }
+            if (!item.year && resolved.year) {
+              item.year = resolved.year;
+              changed = true;
+            }
+            if (!item.genre && resolved.genre) {
+              item.genre = resolved.genre;
+              changed = true;
+            }
+            if (!item.runtime && resolved.runtime) {
+              item.runtime = resolved.runtime;
+              changed = true;
             }
 
-            if (state.connectionMode === 'live' && !item.hasSheetMetadata && item.posterUrl) {
-              postToAppsScript({
-                action: 'cacheMetadata',
-                title: item.sheetTitle || item.title,
-                rowIndex: item.rowIndex,
-                rowIndices: item.rowIndices,
+            if (changed) {
+              state.metadataCache[item.key] = {
                 posterUrl: item.posterUrl,
                 year: item.year,
                 genre: item.genre,
                 runtime: item.runtime
-              }).then(() => {
-                item.hasSheetMetadata = true;
-              }).catch(() => {});
+              };
+              saveJsonStorage(STORAGE_KEYS.METADATA_CACHE, state.metadataCache);
+              updateCardInDom(item);
+
+              if (state.selectedItemKey === item.key && !dom.detailModal.hidden) {
+                openDetailModal(item.key);
+              }
             }
+          }
+        }
+
+        if (state.connectionMode === 'live' && !item.hasSheetMetadata && item.posterUrl) {
+          try {
+            await postToAppsScript({
+              action: 'cacheMetadata',
+              title: item.sheetTitle || item.title,
+              rowIndex: item.rowIndex,
+              rowIndices: item.rowIndices,
+              posterUrl: item.posterUrl,
+              year: item.year,
+              genre: item.genre,
+              runtime: item.runtime
+            });
+            item.hasSheetMetadata = true;
+          } catch {
+            // Will retry on next sync
           }
         }
       }
