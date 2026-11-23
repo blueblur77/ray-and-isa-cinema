@@ -34,6 +34,10 @@ const WEBSITE_COLUMNS = [
   'Runtime'
 ];
 
+const HIDDEN_COLUMNS = [
+  'Watched Date'
+];
+
 function getTargetSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheets = ss.getSheets();
@@ -43,12 +47,34 @@ function getTargetSheet_() {
   return gidZero || sheets[0];
 }
 
+function formatAndHideColumns_(sheet, headers) {
+  try {
+    var maxRows = sheet.getMaxRows();
+    var watchedDateIdx = headers.indexOf('Watched Date') + 1;
+    if (watchedDateIdx > 0 && maxRows > 1) {
+      sheet.getRange(2, watchedDateIdx, maxRows - 1, 1).setNumberFormat('yyyy-mm-dd');
+    }
+
+    HIDDEN_COLUMNS.forEach(function (colName) {
+      var colIdx = headers.indexOf(colName) + 1;
+      if (colIdx > 0) {
+        if (!sheet.isColumnHiddenByUser || !sheet.isColumnHiddenByUser(colIdx)) {
+          sheet.hideColumns(colIdx);
+        }
+      }
+    });
+  } catch (ignore) {}
+}
+
 function ensureColumns_(sheet) {
   const lastCol = sheet.getLastColumn();
+  var finalHeaders;
+
   if (lastCol === 0) {
-    const allHeaders = BASE_COLUMNS.concat(WEBSITE_COLUMNS);
-    sheet.getRange(1, 1, 1, allHeaders.length).setValues([allHeaders]);
-    return allHeaders;
+    finalHeaders = BASE_COLUMNS.concat(WEBSITE_COLUMNS);
+    sheet.getRange(1, 1, 1, finalHeaders.length).setValues([finalHeaders]);
+    formatAndHideColumns_(sheet, finalHeaders);
+    return finalHeaders;
   }
 
   const headerRange = sheet.getRange(1, 1, 1, lastCol);
@@ -63,10 +89,13 @@ function ensureColumns_(sheet) {
   if (missing.length > 0) {
     const startCol = headers.length + 1;
     sheet.getRange(1, startCol, 1, missing.length).setValues([missing]);
-    return headers.concat(missing);
+    finalHeaders = headers.concat(missing);
+  } else {
+    finalHeaders = headers;
   }
 
-  return headers;
+  formatAndHideColumns_(sheet, finalHeaders);
+  return finalHeaders;
 }
 
 function formatCellValue_(val, timeZone) {
